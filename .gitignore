@@ -1,0 +1,16 @@
+# Binaries
+/server
+/mock-hospital-a
+
+# Go
+vendor/
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+
+# Env
+.env

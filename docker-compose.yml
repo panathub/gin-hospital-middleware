@@ -1,0 +1,46 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: hospital_middleware
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  mock-hospital-a:
+    build:
+      context: .
+      dockerfile: Dockerfile.mock-hospital
+
+  app:
+    build: .
+    environment:
+      PORT: ${PORT:-8080}
+      DATABASE_URL: ${DATABASE_URL:-postgres://postgres:postgres@postgres:5432/hospital_middleware?sslmode=disable}
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      HOSPITAL_A_BASE_URL: ${HOSPITAL_A_BASE_URL:-http://mock-hospital-a:9000}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mock-hospital-a:
+        condition: service_started
+
+  nginx:
+    image: nginx:1.27-alpine
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "8088:80"
+    depends_on:
+      - app
+
+volumes:
+  postgres_data:
